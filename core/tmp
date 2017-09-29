@@ -1,0 +1,347 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Collections;
+
+namespace DataStructure
+{
+
+
+    // RockType
+    //  NewtonTreeNode<RockType> 该树节点以RockType为范型模板生成
+    //
+    public class RockType  // 这是什么类，什么作用？？？
+    {
+        public int id;
+        public double gkey;
+        public RockType(int id,double gkey)
+        {
+            this.id = id;
+            this.gkey = gkey;
+        }
+        public static int CompareFunc(RockType a, RockType b)
+        {
+            int gCompare=a.gkey.CompareTo(b.gkey);
+            if (gCompare == 0) return a.id - b.id;
+            return gCompare;
+        }
+    }
+    public class RockQueue
+    {
+ //       public const int N=1100;
+        NewtonAVLTree<RockType> pTree;　　// 这是什么关键　
+        public RockType[] rt;　// 这是干什么用的？，这个数组的作用？
+        public int id; // unknown
+        int count=0; // unknown
+        public int Capacity　//　容量
+        {
+            get
+            {
+                return rt.Length;
+            }
+        }
+        public RockQueue(int len) // 构造函数
+        {
+            pTree = new NewtonAVLTree<RockType>(); // 范型 实例化一个pTree
+            rt = new RockType[len];
+        }
+        public bool Delete(int id) //id为要删除的编号
+        {
+            if (rt[id] == null)  // rt是用来存放元素为id的对象是否存在的吗？？？
+                return false;
+            RockType pData = rt[id];
+            bool flag = pTree.AVLTree_Delete(pData, RockType.CompareFunc);
+            if (flag)
+            {
+                count--;
+                rt[id] = null;
+            }
+            return flag;
+        }
+        public bool Insert(RockType pRT)
+        {
+            if (rt[pRT.id] != null) return false;
+            RockType pData=pRT;
+            rt[pRT.id] = pRT;
+            bool flag = pTree.AVLTree_Insert(pData, RockType.CompareFunc);
+            if (flag) count++;
+            return flag;
+        }
+        public bool Insert(int id,double gkey)
+        {
+            RockType pRT=new RockType(id,gkey);
+            return Insert(pRT);
+        }
+        public RockType ExtractMax()
+        {
+            NewtonTreeNode<RockType> maxNode = pTree.AVLTree_GetMax();
+            pTree.AVLTree_Delete(maxNode.pData, RockType.CompareFunc);
+            count--;
+            rt[maxNode.pData.id] = null;
+            return maxNode.pData;
+        }
+        public RockType GetMax()
+        {
+            return pTree.AVLTree_GetMax().pData;
+        }
+        public int Size()
+        {
+            return count;
+        }
+        public bool Update(int id,double gkey)
+        {
+            if(rt[id]==null) return false;
+            RockType newData = new RockType(id, gkey);
+            RockType oldData = rt[id];
+            if (newData.Equals(oldData))
+            {
+                Console.WriteLine("插入相同的值");
+                return false;
+            }
+            pTree.AVLTree_Delete(oldData, RockType.CompareFunc);
+            pTree.AVLTree_Insert(newData, RockType.CompareFunc);
+            rt[id] = newData;
+            return true;
+        }
+        public static int CompareFunc(RockQueue a, RockQueue b)
+        {
+            return RockType.CompareFunc(a.GetMax(), b.GetMax());
+        }
+    }
+
+    public class RockFunc
+    {
+        /// <summary>
+        /// 计算inlist和linkNum  //这里应该是表述错误，应该为：计算inlist的linkNum
+        /// </summary>
+        /// <param name="u">存放节点间的指向关系</param>
+        /// <param name="len">len是节点的个数</param>
+        public static LINK compute_linkNum(bool[,] u, int len,int k)
+        {
+            LINK link=new LINK(len,k);
+             /// <summary>
+            /// inlist[i,]是指向i节点的所有节点集合
+            /// </summary>
+            int[,] inlist;
+
+            /// <summary>
+            /// top[i]为指向第i个节点的点的个数，就是inlist[i,]中元素个数
+            /// </summary>
+            int[] top;
+            inlist = new int[len, len];
+            top = new int[len];
+            int i = 0, j = 0;
+            for (i = 0; i < len; i++)
+            {
+                for (j = 0; j < len; j++)
+                {
+                    if (u[j, i]) inlist[i, top[i]++] = j;
+                }
+            }
+            for (i = 0; i < len; i++)
+            {
+                int sumn = top[i];
+                for (j = 0; j < sumn - 1; j++)
+                    for (int l = j+1; l < sumn; l++)
+                    {
+                        link.linkNum[inlist[i, j], inlist[i, l]]++;
+                        link.linkNum[inlist[i, l], inlist[i, j]]++;
+                    }
+            }
+            return link;
+        }
+        public static double gFunc(int i, int j, LINK link) // i ，j 分别表示第i，j个簇
+        {
+            const double w=0.5;
+            double mi=1.0+2.0*w;
+            return ((double)link.linkNum[i, j]) / (
+                Math.Pow((link.setN[i] + link.setN[j]), mi) - Math.Pow(link.setN[i], mi) - Math.Pow(link.setN[j], mi));
+        }
+        public static RockQueue build_local_heap(LINK link, int s)
+        {
+            RockQueue qs = new RockQueue(link.setN.Length); // link.setN到底是什么东西？？
+            for (int i = 0; i < link.len; i++)
+            {
+                if(i==s) continue;
+                double gkey=gFunc(i,s,link);
+                qs.Insert(i, gkey);
+            }
+            return qs;
+        }
+        public static RockQueue build_global_heap(LINK link,RockQueue[] q)
+        {
+            RockQueue gheap = new RockQueue(link.setN.Length);
+            for (int i = 0; i < link.len; i++)
+            {
+                RockType iMax = q[i].GetMax();
+                RockType iRT = new RockType(i, iMax.gkey);
+                gheap.Insert(iRT);
+            }
+            return gheap;
+        }
+        public static int size(RockQueue Q)
+        {
+            return Q.Size();
+        }
+        public static int extract_max(RockQueue Q)
+        {
+            return Q.ExtractMax().id;
+        }
+        public static int max(RockQueue qu)
+        {
+            return qu.GetMax().id;
+        }
+        public static bool delete(RockQueue queue, int id)
+        {
+            if (queue == null) return false;
+            return queue.Delete(id);
+        }
+        public static int merge(int u, int v,ref LINK link)
+        {
+            int w=link.newElement();
+            link.setN[w] = link.setN[u] + link.setN[v];
+            link.sets[u] = link.sets[v] = w;
+            return w;
+        }
+        public static List<int> UnionElements(int u, int v,RockQueue[] q)
+        {
+            int len = q[u].Capacity;
+            List<int> list = new List<int>(len);
+            for (int i = 0; i < len; i++)
+            {
+                if (q[u].rt[i] != null || q[v].rt[i] != null)
+                {
+                    list.Add(i);
+                }
+            }
+            return list;
+        }
+        public static void deallocate(ref RockQueue queue)
+        {
+            queue = null;
+        }
+        public static bool insert(RockQueue queue,int w,double gkey)
+        {
+            if (queue == null) return false;
+            return queue.Insert(w, gkey);
+        }
+        public static bool insert(RockQueue Q, int w, RockQueue qw)
+        {
+            return Q.Insert(w, qw.GetMax().gkey);
+        }
+        public static void update(RockQueue Q, int x, RockQueue qx)
+        {
+            if (qx == null) return;
+            Q.Update(x, qx.GetMax().gkey);
+        }
+
+    }
+    public class LINK
+    {
+        /// <summary>
+        /// linkNum[i,j]表示节点i和j公共指向节点的个数
+        /// </summary>
+        public int[,] linkNum;
+        public int len,now;
+        public int[] setN;
+        public int[] sets;
+        public int newElement()
+        {
+            return now++;
+        }
+        public LINK(int Length,int k) // k是簇的个数吗？？
+        {
+            len = Length + Length-k;
+            this.linkNum = new int[len, len];
+            this.setN = new int[len];  ## setN[i] = j 表示 簇i的邻居有j个
+            this.sets = new int[len]; ## sets[i] = j 表示 簇i合并后属于簇j
+            for (int i = 0; i < len; i++)
+            {
+                setN[i] = 1;
+                sets[i] = i;
+            }
+            len = Length;
+            now = len;
+        }
+    }
+
+    public class RockCluster
+    {
+        LINK link;
+        public int[] RockAlgorithm(int k, bool[,] S, int len) // k = 2 表示什么意思，len = 5 呢，
+        {
+            link = RockFunc.compute_linkNum(S, len,k);
+            RockQueue[] q=new RockQueue[len+ len - k];
+            for (int s = 0; s < len; s++)
+                q[s] = RockFunc.build_local_heap(link, s);  // 构建本地堆 对每一个对象，说明len是对象的个数，
+                // 那么 k 就是最终要聚的簇 的数目
+            RockQueue Q = RockFunc.build_global_heap(link, q); // 构建全局堆 Q
+            while (RockFunc.size(Q) > k)
+            {
+                int u = RockFunc.extract_max(Q);
+                int v = RockFunc.max(q[u]);
+                RockFunc.delete(Q, v);
+                int w = RockFunc.merge(u, v, ref link);
+                q[w] = new RockQueue(len + len - k);
+                List<int> xset = RockFunc.UnionElements(u, v, q);
+
+                foreach (int x in xset)
+                {
+                    link.linkNum[x, w] = link.linkNum[x, u] + link.linkNum[x, v];
+                    // 更新簇之间的公共邻居值
+                    RockFunc.delete(q[x], u); RockFunc.delete(q[x], v);
+                    // 对应的原始合并后的簇邻居删除初始被合并的簇，更新他们的local_heap
+                    RockFunc.insert(q[x],w,RockFunc.gFunc(x,w,link));
+                    // x的local_heap中更新对w的gFunc函数值
+                    if(Q.rt[x]!=null) RockFunc.insert(q[w],x,RockFunc.gFunc(x,w,link));
+                    // 如果全局堆里面没有x，
+                    // 因为每一个有效的簇在全局堆里面都有对应的最大的gfunc对应的rocktype对象
+                    RockFunc.update(Q,x,q[x]);
+                    // 将x的邻接最大gfunc更新到全局堆中
+                    // 问题：　如果ｑ[x]为空，为什么不讲q[x]也更新为空？？
+                }
+                RockFunc.insert(Q,w,q[w]);
+                RockFunc.deallocate(ref q[u]); RockFunc.deallocate(ref q[v]);
+                // 释放q[u],q[v]的空间
+            }
+
+            int[] bloggerGroupIds = new int[len + len - k];
+            link.sets.CopyTo(bloggerGroupIds, 0);
+            for (int i = 0; i < len; i++)
+            {
+                int mid=i;
+                while (mid != bloggerGroupIds[mid]) // 终止条件是sets[i] = i，所以～～
+                {
+                    mid = bloggerGroupIds[mid];
+                }
+                bloggerGroupIds[i] = mid;
+            }
+            int[] bloggerGroupIds2 = new int[len];
+            for (int i = 0; i < len; i++)
+                bloggerGroupIds2[i] = bloggerGroupIds[i];
+            return bloggerGroupIds2;
+        }
+    }
+}
+
+
+//   public static void showBloggerIds(int[] BloggerIds)
+//        {
+//            for (int i = 0; i < BloggerIds.Length; i++)
+//                Console.WriteLine("{0},{1}",i,BloggerIds[i]);
+//        }
+//        static void Main(string[] args)
+//        {
+//            RockCluster rc = new RockCluster();
+//            bool [,]S=new bool[5,5];
+//            S[0, 4] = true;
+//            S[1, 2] = true;
+//            S[2, 4] = true;
+//            S[3, 4] = true;
+//            S[2, 3] = true;
+//            S[0, 3] = true;
+//            S[4, 2] = true;
+//            int len=5;
+//            int []BloggerIds = rc.RockAlgorithm(2, S, len);
+//            showBloggerIds(BloggerIds);
+//}

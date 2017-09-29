@@ -1,0 +1,6 @@
+name : xiaoweiwei
+HOME_DIR : /home/zw/Documents/project/Clustering/
+string_similarity_weight: 2 ## TODO
+TITLE_WEIGHT: 3
+REG_PERSON_WEIGHT: 10
+TIME_LIMIT: '2017-01-01'
